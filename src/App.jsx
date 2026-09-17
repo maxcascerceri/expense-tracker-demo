@@ -42,6 +42,7 @@ function formatDate(iso) {
   })
 }
 
+/** Renders an expense ledger with persisted entries and date and category filters. */
 export default function App() {
   const [expenses, setExpenses] = useState(loadExpenses)
   const [amount, setAmount] = useState('')
