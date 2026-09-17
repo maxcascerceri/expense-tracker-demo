@@ -47,16 +47,30 @@ export default function App() {
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState(CATEGORIES[0])
   const [date, setDate] = useState(todayISO)
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [filterCategory, setFilterCategory] = useState('all')
+
+  const filtered = useMemo(() => {
+    return expenses.filter((expense) => {
+      if (filterCategory !== 'all' && expense.category !== filterCategory) return false
+      if (startDate && expense.date < startDate) return false
+      if (endDate && expense.date > endDate) return false
+      return true
+    })
+  }, [expenses, filterCategory, startDate, endDate])
 
   const total = useMemo(
-    () => expenses.reduce((sum, expense) => sum + expense.amount, 0),
-    [expenses],
+    () => filtered.reduce((sum, expense) => sum + expense.amount, 0),
+    [filtered],
   )
 
   const sorted = useMemo(
-    () => [...expenses].sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id),
-    [expenses],
+    () => [...filtered].sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id),
+    [filtered],
   )
+
+  const filtersActive = Boolean(startDate || endDate || filterCategory !== 'all')
 
   function persist(next) {
     setExpenses(next)
@@ -98,7 +112,9 @@ export default function App() {
         <p className="meta">
           {expenses.length === 0
             ? 'No expenses yet'
-            : `${expenses.length} ${expenses.length === 1 ? 'entry' : 'entries'}`}
+            : filtersActive
+              ? `${sorted.length} of ${expenses.length} ${expenses.length === 1 ? 'entry' : 'entries'}`
+              : `${expenses.length} ${expenses.length === 1 ? 'entry' : 'entries'}`}
         </p>
       </section>
 
@@ -146,9 +162,60 @@ export default function App() {
       </section>
 
       <section className="panel">
-        <h2>All expenses</h2>
-        {sorted.length === 0 ? (
+        <div className="panel-heading">
+          <h2>All expenses</h2>
+          {filtersActive ? (
+            <button
+              className="clear"
+              type="button"
+              onClick={() => {
+                setStartDate('')
+                setEndDate('')
+                setFilterCategory('all')
+              }}
+            >
+              Clear filters
+            </button>
+          ) : null}
+        </div>
+        <div className="fields filters">
+          <label>
+            Start date
+            <input
+              type="date"
+              value={startDate}
+              max={endDate || undefined}
+              onChange={(event) => setStartDate(event.target.value)}
+            />
+          </label>
+          <label>
+            End date
+            <input
+              type="date"
+              value={endDate}
+              min={startDate || undefined}
+              onChange={(event) => setEndDate(event.target.value)}
+            />
+          </label>
+          <label>
+            Category
+            <select
+              value={filterCategory}
+              onChange={(event) => setFilterCategory(event.target.value)}
+            >
+              <option value="all">All categories</option>
+              {CATEGORIES.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {expenses.length === 0 ? (
           <p className="empty">Add an amount, category, and date to start the list.</p>
+        ) : sorted.length === 0 ? (
+          <p className="empty">No expenses match these filters.</p>
         ) : (
           <ul className="list">
             {sorted.map((expense) => (
